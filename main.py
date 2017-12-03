@@ -15,12 +15,15 @@ from song import Song
 import numpy as np
 
 
-# Creer un tableau des noms des fichiers contenu dans un repertoire
+# Cree un tableau avec les noms des fichiers contenus dans
+# le repertoire passe en parametre
+# Si sous repertoire alors il sera ignore
 def getFilesIn(directory_name):
 	all_files_in_directory = [f for f in listdir(directory_name) if isfile(join(directory_name, f))]
 	return all_files_in_directory
 
-# Test le nombre d'arguments passé en paramètre, si incorrecte message d'erreur et renvoi false
+# Test le nombre d'arguments passé en paramètre, si incorrecte
+# un message d'erreur est affiche et renvoi false, sinon true
 def test_args():
 	if len(sys.argv) - 1 != 6: # les 5 args
 		print colors.bcolors.FAIL +  'usage: python main.py <genre.csv> <train.csv> <data_train_rep> <test.csv> <to_test_rep> <out_name.csv>' + colors.bcolors.ENDC
@@ -42,6 +45,7 @@ def createSongs(train_songs, train_path, dic_genre):
 	return songs
 
 # Simple verification pour s'assurer que le nom du dossier se fini par un '/'
+# si ce n'est pas le cas on le rajoute
 def checkPath(path):
 	p = path
 	if p[len(p) - 1] != '/':
@@ -67,10 +71,10 @@ def main():
 	train_songs = createSongs(train_songs_files, path_to_train_songs, dic_train)
 	to_classify_songs = createSongs(to_test_song_files, path_to_classify_songs, songs_to_test)
 
-	NUMBER_OF_SONGS_TO_TRAIN = 5
-	# NUMBER_OF_SONGS_TO_TRAIN = len(train_songs)
-	NUMBER_OF_SONGS_TO_CLASSIFY = 5
-	# NUMBER_OF_SONGS_TO_CLASSIFY = len(to_classify_songs)
+	# NUMBER_OF_SONGS_TO_TRAIN = 5
+	NUMBER_OF_SONGS_TO_TRAIN = len(train_songs)
+	# NUMBER_OF_SONGS_TO_CLASSIFY = 5
+	NUMBER_OF_SONGS_TO_CLASSIFY = len(to_classify_songs)
 
 	print colors.bcolors.OKBLUE + 'Loading songs and extracting features ...' + colors.bcolors.ENDC
 	# Dans un premier temps on calcul la MFCC des musiques 'connues' (train)
@@ -89,6 +93,9 @@ def main():
 	csv_tools.songsToCSV(to_classify_songs, "track_id,genre_id\n", sys.argv[6])
 
 	print colors.bcolors.OKGREEN + "Done processing" + colors.bcolors.ENDC
+	print colors.bcolors.HEADER + "Song trained: " + str(len(train_songs)) + colors.bcolors.ENDC
+	print colors.bcolors.HEADER + "Song tested: " + str(len(to_classify_songs)) + colors.bcolors.ENDC
+
 
 if __name__ == '__main__':
 	if test_args():

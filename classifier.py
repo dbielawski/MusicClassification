@@ -42,17 +42,26 @@ def loadSong(song):
 	return song
 
 
-def findNN(train_dataset, song, n_neighbors=5):
-
+def findNN(train_dataset, song, MAX_COLS, n_neighbors=5):
 	if song is None:
 		return
 	if song.mfcc is None:
 		return
 
-	neigh = NearestNeighbors(n_neighbors=n_neighbors)
-	MAX_COLS = 25000
+	neigh = NearestNeighbors(n_neighbors=n_neighbors)	
 
+	neigh.fit(train_dataset)
+
+	song_mffc_as_vector = np.reshape(song.mfcc, (1, song.mfcc.shape[0] * song.mfcc.shape[1]))
+	song_mffc_as_vector = checkMFCCsize(song_mffc_as_vector, MAX_COLS)
+
+	NN = neigh.kneighbors(song_mffc_as_vector)
+	song.NN = NN
+
+
+def classifyNearestNeighbors(train_dataset, classify_dataset, n_neighbors=5):
 	mfccs = []
+	MAX_COLS = 25000
 
 	for s in train_dataset:
 		if s.mfcc is not None:
@@ -65,18 +74,8 @@ def findNN(train_dataset, song, n_neighbors=5):
 	nsamples, nx, ny = mfccs.shape
 	train_dataset = mfccs.reshape((nsamples, nx * ny))
 
-	neigh.fit(train_dataset)
-
-	AAA = np.reshape(song.mfcc, (1, song.mfcc.shape[0] * song.mfcc.shape[1]))
-	AAA = checkMFCCsize(AAA, MAX_COLS)
-
-	NN = neigh.kneighbors(AAA)
-	song.NN = NN
-
-
-def classifyNearestNeighbors(train_dataset, classify_dataset, n_neighbors=5):
 	for c_song in classify_dataset:
-		findNN(train_dataset, c_song, n_neighbors)
+		findNN(train_dataset, c_song, MAX_COLS, n_neighbors)
 
 
 def defineGenre(train_dataset, classify_dataset):
@@ -132,11 +131,19 @@ def checkMFCCsize(mfcc, size, padding_value=0):
 			mfcc_tmp = np.copy(mfcc)
 			for i in range(mfcc.shape[1], size):
 				mfcc_tmp = np.append(mfcc_tmp, padding_value)
-				n = np.copy(mfcc_tmp)
+			mfcc_tmp = np.reshape(mfcc_tmp, (1, n.shape[0]))
+			n = np.copy(mfcc_tmp)
 
-	# print n.shape
 	n = np.reshape(n, (1, n.shape[1]))
 	return n
+
+
+
+
+
+
+
+
 
 
 def findKNN(list_of_songs, mfcc):
@@ -150,4 +157,5 @@ def findKNN(list_of_songs, mfcc):
 
 
 def m_std_v_ofMFCC(y):
+
 	return np.mean(y), np.std(y), np.var(y)
