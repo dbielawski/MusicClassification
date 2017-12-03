@@ -3,7 +3,6 @@
 
 import sys
 import time
-import librosa
 from os import listdir
 from os import path
 from os.path import isfile, join

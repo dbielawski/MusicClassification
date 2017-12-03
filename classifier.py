@@ -28,16 +28,16 @@ def loadSong(song):
 	# corrompu ?
 	if len(y) == 0:
 		song.id_genre = -1
-		print "Corrompu " + song.name
+		print "Corrompu " + song.path + song.name + song.ext
 		
 	else:
 		M = librosa.feature.mfcc(y=y, sr=sr)
-		centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
+		#centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
 
-		song.y = np.copy(y)
+		#song.y = np.copy(y)
 		song.sr = sr
 		song.mfcc = np.copy(M)
-		song.centroid = np.copy(centroid)
+		#song.centroid = np.copy(centroid)
 
 	return song
 
@@ -80,9 +80,6 @@ def classifyNearestNeighbors(train_dataset, classify_dataset, n_neighbors=5):
 
 
 def defineGenre(train_dataset, classify_dataset):
-	# for a in train_dataset:
-	# 	print a.id_genre
-
 	for song in classify_dataset:
 		if song.NN is not None:
 			# on recupere les indices des N voisins
@@ -93,13 +90,7 @@ def defineGenre(train_dataset, classify_dataset):
 			for i in indicesTrainNN:
 				id_genres.append(train_dataset[i].id_genre)
 
-			# Coompte le nombre d'occurences de ces genres
-			counts = np.bincount(id_genres)
-			# On prend le genre le plus recurrent
-			song.id_genre = np.argmax(counts)
-
-			print id_genres, "   ", counts, "     ", song.id_genre
-			# greatestOccurrence(id_genres)
+			song.id_genre = greatestOccurrence(id_genres)
 		else:
 			song.id_genre = -1
 
@@ -108,14 +99,23 @@ def greatestOccurrence(array):
 	counts = np.bincount(array)
 	value_of_greatest_occurrence = np.argmax(counts)
 
-	cpt = 0;
+	values = []
+
+	# parcourt counts pour trouver quelles valeurs sont le plus redondantes
 	for x in range(0, len(counts)):
-		if array[x] != value_of_greatest_occurrence:
-			cpt = cpt + 1
-		else:
-			break
-			
-	return cpt
+		if counts[x] == counts[value_of_greatest_occurrence]:
+			values.append(str(x))
+
+	r = -1
+	found = False
+
+	for x in array:
+		for v in values:
+			if x == v and not found:
+				r = x
+				found = True
+
+	return r
 
 # Passe une MFCC en parametre et determine s'il a la bonne
 # verifie s'il est de la bonne taille.

@@ -7,10 +7,10 @@ class Song:
 		self.name = name
 		self.ext = ext
 		self.path = path
-		self.y = []
+		#self.y = []
 		self.sr = -1
 		self.mfcc = None
-		self.centroid = None
+		#self.centroid = None
 		self.NN = None
 
 	def __repr__(self):
