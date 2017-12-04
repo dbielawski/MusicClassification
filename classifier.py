@@ -22,14 +22,18 @@ def computeMFCCThreaded(list_of_songs):
 
 
 def loadSong(song):
+	print "LaodSong: " + song.path + song.name
 	full_path = song.path + song.name + song.ext;
-	y, sr = librosa.load(full_path)
+	try:
+		y, sr = librosa.load(full_path)
+	except:
+		y = None
+		print "Error while loading song: " + song.name
 
 	# corrompu ?
-	if len(y) == 0:
+	if y is None or len(y) == 0:
 		song.id_genre = -1
 		print "Corrompu " + song.path + song.name + song.ext
-		
 	else:
 		M = librosa.feature.mfcc(y=y, sr=sr)
 		#centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
@@ -65,6 +69,7 @@ def classifyNearestNeighbors(train_dataset, classify_dataset, n_neighbors=5):
 
 	for s in train_dataset:
 		if s.mfcc is not None:
+			print "Song name: " + s.name + s.ext
 			new_mfcc = np.reshape(s.mfcc, (1, s.mfcc.shape[0] * s.mfcc.shape[1]))
 			new_mfcc = checkMFCCsize(new_mfcc, MAX_COLS)
 			mfccs.append(new_mfcc)
@@ -131,7 +136,8 @@ def checkMFCCsize(mfcc, size, padding_value=0):
 			mfcc_tmp = np.copy(mfcc)
 			for i in range(mfcc.shape[1], size):
 				mfcc_tmp = np.append(mfcc_tmp, padding_value)
-			mfcc_tmp = np.reshape(mfcc_tmp, (1, n.shape[0]))
+
+			mfcc_tmp = np.reshape(mfcc_tmp, (1, mfcc_tmp.shape[0]))
 			n = np.copy(mfcc_tmp)
 
 	n = np.reshape(n, (1, n.shape[1]))

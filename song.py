@@ -15,5 +15,3 @@ class Song:
 
 	def __repr__(self):
 		return "id_genre: " + str(self.id_genre)  + " path: " + self.path +self.name + self.ext +"\n"
-
-# python main.py data/genres.csv data/train.csv ../Train data/test.csv ../Test out_poor_classification.csv

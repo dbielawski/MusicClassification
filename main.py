@@ -71,16 +71,18 @@ def main():
 	train_songs = createSongs(train_songs_files, path_to_train_songs, dic_train)
 	to_classify_songs = createSongs(to_test_song_files, path_to_classify_songs, songs_to_test)
 
-	# NUMBER_OF_SONGS_TO_TRAIN = 5
+	# NUMBER_OF_SONGS_TO_TRAIN = 2700
 	NUMBER_OF_SONGS_TO_TRAIN = len(train_songs)
 	# NUMBER_OF_SONGS_TO_CLASSIFY = 5
 	NUMBER_OF_SONGS_TO_CLASSIFY = len(to_classify_songs)
 
 	print colors.bcolors.OKBLUE + 'Loading songs and extracting features ...' + colors.bcolors.ENDC
+	print colors.bcolors.OKBLUE + 'Loading train songs  ...' + colors.bcolors.ENDC
 	# Dans un premier temps on calcul la MFCC des musiques 'connues' (train)
 	# Ainsi que ...
-	time_elapsed = time.time();
+	time_elapsed = time.time()
 	train_songs = classifier.computeMFCCThreaded(train_songs[0:NUMBER_OF_SONGS_TO_TRAIN])
+	print colors.bcolors.OKBLUE + 'Loading test songs  ...' + colors.bcolors.ENDC
 	to_classify_songs = classifier.computeMFCCThreaded(to_classify_songs[0:NUMBER_OF_SONGS_TO_CLASSIFY])	
 	print colors.bcolors.OKGREEN + 'Songs loaded in ' + str(time.time() - time_elapsed) + colors.bcolors.ENDC
 
@@ -102,3 +104,7 @@ if __name__ == '__main__':
 		time_elapsed = time.time();
 		main()
 		print "Time time elapsed: " + str(time.time() - time_elapsed)
+
+# python main.py data/genres.csv data/train.csv ../Train data/test.csv ../Test out_poor_classification.csv
+
+# python main.py data/genres.csv data/train.csv /net/cremi/dbielawski/espaces/travail/TSMA/train/Train/ data/test.csv /net/cremi/dbielawski/espaces/travail/TSMA/test/Test/ out_poor_classification.csv
