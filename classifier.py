@@ -9,34 +9,122 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neighbors import NearestNeighbors
 
 
+class Classifier:
+
+	MAX_COLS = 5000
+	n_neighbors = 5
+
+	def __init__(self, train_dataset, classify_dataset):
+		self.train_dataset = train_dataset
+		self.classify_dataset = classify_dataset
+
+		self.mfccs = None
+		self.neigh = None
+
+
+	# Prepare les mfcc des données train
+	def prepareTrainMFCC(self, n_neighbors=5):
+		mfccs = []
+
+		for s in self.train_dataset:
+			if s.mfcc is not None:
+				new_mfcc = np.reshape(s.mfcc, (1, s.mfcc.shape[0] * s.mfcc.shape[1]))
+				new_mfcc = checkMFCCsize(new_mfcc, self.MAX_COLS)
+				mfccs.append(new_mfcc)
+
+		mfccs = np.asarray(mfccs);
+
+		nsamples, nx, ny = mfccs.shape
+		mfccs = mfccs.reshape((nsamples, nx * ny))
+
+		self.mfccs = mfccs
+
+
+	# Trouve les plus proches voisins de 'song', passe en parametre
+	def findNN(self, song):
+		if song is None:
+			return
+		if song.mfcc is None:
+			return
+
+		song_mffc_as_vector = np.reshape(song.mfcc, (1, song.mfcc.shape[0] * song.mfcc.shape[1]))
+		song_mffc_as_vector = checkMFCCsize(song_mffc_as_vector, self.MAX_COLS)
+		NN = classif.neigh.kneighbors(song_mffc_as_vector)
+		song.NN = NN
+		return song
+
+
+	# Parcours toutes les données à classer pour assigner un genre musical
+	def defineGenre(self):
+		for song in self.classify_dataset:
+			if song.NN is not None:
+				# on recupere les indices des N voisins
+				indicesTrainNN = song.NN[1][0]
+				id_genres = []
+
+				# on parcourt tout les voisins pour recuperer
+				# les id_genre de ces voisins
+				for i in indicesTrainNN:
+					id_genres.append(self.train_dataset[i].id_genre)
+
+				song.id_genre = greatestOccurrence(id_genres)
+			else:
+				song.id_genre = 0
+	
+
+# Charge tous les sons passe en parametre
+# Fait de maniere parallele
 def computeMFCCThreaded(list_of_songs):
 	# cpu_cores = 1
 	# print "Nombre de cores " + str(cpu_cores)
 
 	# Recupere le nombre de coeurs de la machine
-	cpu_cores = mp.cpu_count()
+	cpu_cores = mp.cpu_count() + 1
 	pool = mp.Pool(cpu_cores)
 	songs = pool.map(loadSong, list_of_songs)
+	pool.close()
+	pool.join()
+
+	return songs
+
+# Cherche les N voisins de tous les sons a classer
+# Fait de maniere parallele
+def findNNThreaded(classif):
+	classif.neigh = NearestNeighbors(n_neighbors=Classifier.n_neighbors)	
+
+	classif.neigh.fit(classif.mfccs)
+
+	cpu_cores = mp.cpu_count() + 1
+	pool = mp.Pool(cpu_cores)
+	songs = pool.apply_async(classif.findNN, args=(classif.classify_dataset,))
+	pool.close()
+	pool.join()
 
 	return songs
 
 
+# Charge un son depuis l'objet passe en parametre
+# Extrait la MFCC
 def loadSong(song):
-	print "LaodSong: " + song.path + song.name
 	full_path = song.path + song.name + song.ext;
 	try:
 		y, sr = librosa.load(full_path)
 	except:
 		y = None
-		print "Error while loading song: " + song.name
+		print "Error while loading song, corrupted ?? : " + song.path + song.name + song.ext
 
 	# corrompu ?
 	if y is None or len(y) == 0:
-		song.id_genre = -1
-		print "Corrompu " + song.path + song.name + song.ext
+		song.id_genre = 0
 	else:
 		M = librosa.feature.mfcc(y=y, sr=sr)
 		#centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
+
+		# prendre les 5 premiers
+		M = M[0:5]
+
+		# for i in range(0, M.shape[0]):
+		# 	M[i] = np.mean(M[i])
 
 		#song.y = np.copy(y)
 		song.sr = sr
@@ -44,59 +132,6 @@ def loadSong(song):
 		#song.centroid = np.copy(centroid)
 
 	return song
-
-
-def findNN(train_dataset, song, MAX_COLS, n_neighbors=5):
-	if song is None:
-		return
-	if song.mfcc is None:
-		return
-
-	neigh = NearestNeighbors(n_neighbors=n_neighbors)	
-
-	neigh.fit(train_dataset)
-
-	song_mffc_as_vector = np.reshape(song.mfcc, (1, song.mfcc.shape[0] * song.mfcc.shape[1]))
-	song_mffc_as_vector = checkMFCCsize(song_mffc_as_vector, MAX_COLS)
-
-	NN = neigh.kneighbors(song_mffc_as_vector)
-	song.NN = NN
-
-
-def classifyNearestNeighbors(train_dataset, classify_dataset, n_neighbors=5):
-	mfccs = []
-	MAX_COLS = 25000
-
-	for s in train_dataset:
-		if s.mfcc is not None:
-			print "Song name: " + s.name + s.ext
-			new_mfcc = np.reshape(s.mfcc, (1, s.mfcc.shape[0] * s.mfcc.shape[1]))
-			new_mfcc = checkMFCCsize(new_mfcc, MAX_COLS)
-			mfccs.append(new_mfcc)
-
-	mfccs = np.asarray(mfccs);
-
-	nsamples, nx, ny = mfccs.shape
-	train_dataset = mfccs.reshape((nsamples, nx * ny))
-
-	for c_song in classify_dataset:
-		findNN(train_dataset, c_song, MAX_COLS, n_neighbors)
-
-
-def defineGenre(train_dataset, classify_dataset):
-	for song in classify_dataset:
-		if song.NN is not None:
-			# on recupere les indices des N voisins
-			indicesTrainNN = song.NN[1][0]
-			id_genres = []
-			# on parcourt tout les voisins pour recuperer
-			# les id_genre de ces voisins
-			for i in indicesTrainNN:
-				id_genres.append(train_dataset[i].id_genre)
-
-			song.id_genre = greatestOccurrence(id_genres)
-		else:
-			song.id_genre = -1
 
 
 def greatestOccurrence(array):
@@ -121,8 +156,8 @@ def greatestOccurrence(array):
 
 	return r
 
-# Passe une MFCC en parametre et determine s'il a la bonne
-# verifie s'il est de la bonne taille.
+
+# Passe une MFCC en parametre et verifie s'il est de la bonne taille.
 # Si ce n'est pas le cas, soit il fait du padding
 # soit il le tronque
 def checkMFCCsize(mfcc, size, padding_value=0):
@@ -142,26 +177,3 @@ def checkMFCCsize(mfcc, size, padding_value=0):
 
 	n = np.reshape(n, (1, n.shape[1]))
 	return n
-
-
-
-
-
-
-
-
-
-
-def findKNN(list_of_songs, mfcc):
-	knn = KNeighborsClassifier()
-	mfccs = []
-	for s in list_of_songs:
-		mfccs = mfccs.append(s.mfcc)
-
-	knn.fit(mfccs)
-	same_mfcc = knn.neighbors(mfcc)
-
-
-def m_std_v_ofMFCC(y):
-
-	return np.mean(y), np.std(y), np.var(y)
