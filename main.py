@@ -12,9 +12,7 @@ import classifier
 import csv_tools
 from song import Song
 
-import numpy as np
-import multiprocessing as mp
-from itertools import product
+
 
 # Cree un tableau avec les noms des fichiers contenus dans
 # le repertoire passe en parametre
@@ -54,8 +52,6 @@ def checkPath(path):
 
 	return p
 
-def work(foo, s):
-	foo.findNN(s)
 
 # Fonction principale
 def main():
@@ -75,9 +71,9 @@ def main():
 	train_songs = createSongs(train_songs_files, path_to_train_songs, dic_train)
 	to_classify_songs = createSongs(to_test_song_files, path_to_classify_songs, songs_to_test)
 
-	# NUMBER_OF_SONGS_TO_TRAIN = 50
-	NUMBER_OF_SONGS_TO_TRAIN = len(train_songs)
-	# NUMBER_OF_SONGS_TO_CLASSIFY = 50
+	NUMBER_OF_SONGS_TO_TRAIN = 1000
+	# NUMBER_OF_SONGS_TO_TRAIN = len(train_songs)
+	# NUMBER_OF_SONGS_TO_CLASSIFY = 5
 	NUMBER_OF_SONGS_TO_CLASSIFY = len(to_classify_songs)
 
 
@@ -95,28 +91,22 @@ def main():
 
 	classification_time_elapsed = time.time()
 	classif = classifier.Classifier(train_songs, to_classify_songs)
+	
 	time_elapsed = time.time()
-	classif.prepareTrainMFCC()
-	print colors.bcolors.OKBLUE + '...Features extraction done in ' + str(time.time() - time_elapsed) + colors.bcolors.ENDC
-
-	time_elapsed = time.time()
-	classifier.findNNThreaded(classif)
+	classif.findAllNN()
 	print colors.bcolors.OKBLUE + '...Finding nearest neighbors done in ' + str(time.time() - time_elapsed) + colors.bcolors.ENDC
-
-	print colors.bcolors.OKGREEN + 'Classification done in ' + str(time.time() - classification_time_elapsed) + colors.bcolors.ENDC
 
 
 	print colors.bcolors.OKGREEN + 'Defining genre ...' + colors.bcolors.ENDC
 	
 	time_elapsed = time.time()
 	classif.defineGenre()
-	csv_tools.songsToCSV(classif.classify_dataset, "track_id,genre_id\n", sys.argv[6])
-
 	print colors.bcolors.OKGREEN + 'Genre definied in ' + str(time.time() - time_elapsed) + colors.bcolors.ENDC
+	csv_tools.songsToCSV(classif.classify_dataset, "track_id,genre_id\n", sys.argv[6])
 
 
 	print colors.bcolors.OKGREEN + "Done processing" + colors.bcolors.ENDC
-	print colors.bcolors.HEADER + "Song trained: " + str(len(classif.classify_dataset)) + colors.bcolors.ENDC
+	print colors.bcolors.HEADER + "Song trained: " + str(len(classif.train_dataset)) + colors.bcolors.ENDC
 	print colors.bcolors.HEADER + "Song tested: " + str(len(classif.classify_dataset)) + colors.bcolors.ENDC
 
 
